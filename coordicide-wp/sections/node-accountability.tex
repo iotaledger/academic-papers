@@ -1,0 +1,58 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+In a network without the Coordinator, several applications require to reliably associate transactions or other messages with the node which issued them.
+These applications include:
+
+\begin{itemize}
+    \item \textit{Rate control.}
+    In an overload scenario, where the nodes are trying to issue more transactions than the overall network can handle, particularly transactions originating from the most heavily contributing nodes should be blocked or penalized.
+    \item \textit{Voting-based consensus mechanisms.}
+    To prevent double voting and to associate votes with node weights, the actual votes must be linked to node IDs.
+\end{itemize}
+
+In Section~\ref{sec:global-node-id}, we suggest a way to associate global identities to nodes. Since this may expose the network to potential Sybil attacks, in Section~\ref{sec:sybil} we introduce \textit{mana}, a novel anti-Sybil mechanism. 
+
+\subsection{Global node identities}\label{sec:global-node-id}
+
+In order to identify nodes, it is necessary to introduce global node identities.
+To this end, we envision using common public key cryptography to sign certain data and to link it to its issuing node in a tamper proof way.
+Additionally, we require that the issuing node adds its public key to every signed message.
+This way, every node can verify the authenticity of the issuing node without the need for some form of global database of IDs and keys.
+It is important to note that these mechanisms only need to be implemented to protect the communication layer and that keys, IDs and signatures do not need to be stored in the Tangle once processed by the node.
+This allows for greater flexibility as the actual signing scheme can be exchanged without any impact on stored data.
+In contrast to any data stored in the Tangle, the communication layer, therefore, does not necessarily require the use of post-quantum cryptography right now, but it can be swapped when quantum attacks become more imminent in the future.
+
+When node identities are relevant, a distributed system becomes vulnerable to Sybil attacks~\cite{douceur2002}, where a malicious entity masquerades as multiple counterfeit identities.
+This would overcome any mechanism that relies on a limited number of such identities and would open the network to coordinated attacks. A possible way to deal with this problem is described in the following section.
+
+\subsection{Sybil protection}\label{sec:sybil}
+
+One very common way to make such a Sybil attack harder is the so-called resource testing, where each identity has to prove the ownership of certain difficult-to-obtain resources.
+Since in the cryptocurrency world users own a certain amount of tokens, we propose a Sybil protection mechanism based on the ownership of such tokens.
+However, instead of requiring the identity to proof the ownership itself, we allow each user of the network issuing transactions to assign tokens to any node of his choosing.
+We call these tokens \textit{mana}; they serve as a hard to obtain resource as well as some form of \enquote{reputation} which can be assigned to trustworthy nodes.
+The fundamentals of the actual mechanism are described below:
+
+\begin{itemize}
+    \item When a transaction is issued, it generates a double flow:
+    It (i) transfers data or tokens from one address to another, and (ii) adds virtual tokens (called \textit{mana}) to some nodes.
+    The amount of \textit{mana} corresponds to the tokens transferred.
+    
+    \item The node ID that should receive the \textit{mana} must be specified in the signed part of the transaction.
+    The node gets credited with the \textit{mana} after a certain time.
+    This is necessary to prevent nodes from generating a new ID for every message they issue.
+    
+    \item As soon as the actual tokens are transferred again, the corresponding \textit{mana} is deducted from the previously referenced node, and can potentially be reassigned to a new node.
+\end{itemize}
+
+We stress here that this process does not influence the actual balances in any way, but it is only used to give higher weight to \enquote{trusted} nodes.
+
+The amount of \textit{mana} people can delegate is determined by how many tokens they own, which means that people who own more tokens will have a larger influence in this process.
+In particular, nodes could accumulate large amounts of \textit{mana} without having much stake in the network of their own.
+In a traditional \textit{proof-of-ownership} Sybil protection mechanism, each node has to prove that it owns a certain amount of collateral. Conversely, delegating \textit{mana} brings several key advantages: As \textit{mana} is credited as part of regular transactions, nodes do not have to constantly use their account's private keys to sign, which would pose a severe security risk;
+furthermore, this approach does not need incentives for node operators to own or declare a high amount of tokens; finally, users can issue additional \textit{mana} to nodes providing good service to the community.
+
+Since we have now established reliable node identities, we can use these identities to discover and connect to other nodes in the network.
+\end{document}

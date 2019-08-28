@@ -1,0 +1,108 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+The paper~\cite{popov2019} introduces a protocol 
+of low communicational complexity
+which allows a set of nodes to come to a 
+consensus on a value of a bit by means 
+of (possibly randomized) voting
+(see e.g.\ \cite{Becchetti2016,cooper2014,cooper2015, elsasser2016,fanti2019,mallmann2017}
+and references therein for the vast available literature 
+on this subject; we mention also the classical work on (probabilistic)
+Byzantine consensus protocols,
+see e.g.~\cite{AguTou12, Ben83, Bra87, CasLis02, 
+FelMic89, FriMosRay04, Rab83}, where,
+typically, the communicational complexity is much larger).
+The distinguishing feature of the mechanism described in~\cite{popov2019}
+is that a larger number of
+\emph{adversarial} (or \emph{Byzantine})
+ nodes is allowed, which may be a (fixed)
+proportion of the total number of nodes.
+Those adversarial nodes 
+intend to either delay the consensus,
+or break it (i.e., make at least a couple of honest nodes
+come to different conclusions).
+ It is shown that,
+nevertheless, the protocol works with high probability
+ when its parameters
+ are suitably chosen, and  
+some explicit estimates on the probability 
+that the protocol finalizes in the consensus state
+in a given time are also provided (Theorems~2.1
+and~2.4).
+
+Differently from the classical work
+in this area, 
+it is not required that
+the consensus should be achieved, with high probability, on the initial majority
+value.
+Rather, 
+\begin{itemize}
+ \item if, initially, no 
+ \emph{significant majority}\footnote{Loosely speaking,
+ a significant majority is something statistically 
+ different from the $50/50$ situation; for example,
+ the proportion of $1$-opinion is greater than~$\phi$
+ for some fixed $\phi>1/2$.} 
+ of nodes prefer~$1$,
+ then the final consensus will be on the value~$0$ 
+with high probability;
+ \item if, initially, a 
+ \emph{supermajority}\footnote{Again, this is 
+ a loosely defined notion; 
+ a supermajority is something already \emph{close}
+ to consensus, e.g., more than 90\% of all nodes 
+ have the same opinion.}
+ of nodes prefer~$1$,
+ then the final consensus will be~$1$ with high probability.
+\end{itemize}
+To explain why this is relevant in cryptocurrency 
+applications, consider a situation when there 
+are two contradicting transactions;
+for example, one of them transfers all the balance of 
+address~$A_1$ to address~$A_2$, while the other
+transfers all the balance of 
+address~$A_1$ to address~$A_3\neq A_2$.
+In the case when neither of the two transactions
+is strongly preferred by the nodes of the network,
+by declaring both invalid we are on the safe side.
+On the other hand, it would not be a good idea to \emph{always}
+declare them invalid. Indeed, if we do this, 
+then a malicious actor would be able to 
+exploit it in the following
+way: First, he places a legitimate transaction, e.g.,\
+to buy some goods from a merchant. When he receives 
+the goods, he publishes a double-spending transaction
+as above in the hope that \emph{both} would be
+canceled by the system, and so he would effectively
+receive his money back (or at least take
+the money away from the merchant). To avoid this kind
+of development, it would be desirable if the first
+transaction (payment to the merchant) which,
+by that time, have probably gained some confidence 
+ from the nodes, would stay confirmed,
+and only the subsequent double-spend gets canceled.
+
+A special feature of the protocol of~\cite{popov2019} is that it makes 
+use of a sequence of random numbers which are either
+provided by a trusted source or generated
+by the nodes themselves using some
+decentralized random number generating protocol,
+see e.g.~\cite{cascudo2017, popov2017, schindler2018, syta2017}.
+It is important to observe that,
+even if from time to time the adversary can get
+(total or partial) control 
+of the random number, this can only lead to delayed consensus,
+but he cannot convince different honest nodes of different 
+things, i.e., safety is not violated.
+Also, it is not necessary that really \emph{all}
+honest nodes agree on the same number; if most 
+of them do, this is already enough for the 
+protocol (that is, the specific task
+of random number generation does not require
+any sort of ``strong consensus'').
+
+We do not describe all the details of the proposed
+protocol here, and refer the interested reader to~\cite{popov2019} instead.
+\end{document}

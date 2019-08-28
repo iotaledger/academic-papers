@@ -1,0 +1,116 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+In IOTA, a node is the machine owning all the information about the Tangle. In order for the network to work efficiently, nodes exchange information with each other to be kept up-to-date about the new ledger state. Currently, a manual peering process is used for nodes to mutually register as neighbors. However, manual peering might be subject to attacks (e.g., social engineering) to affect the network topology. To prevent these attacks, and to simplify the setup process of new nodes, we introduce a mechanism that allows nodes to choose their neighbors \textit{automatically}. The process of nodes choosing their neighbors without manual intervention by the node operator is called \emph{auto peering}.
+
+Specifically, in this section we propose an auto peering mechanism which achieves two important goals: First, it creates an infrastructure where new nodes can easily join the network; second, we make sure that an attacker cannot target specific nodes during the peering process, i.e., we ensure the network to be secure against Eclipse attacks.
+
+\subsection{Peer discovery}
+
+Every node chooses its neighbors from a list of potential peering partners. In a permissionless environment, this list changes over time since nodes can continuously join or leave the network. To keep this list up-to-date, we assume that nodes periodically communicate a subset of their known peers with others. This mechanism is simple and effective as it allows every node to learn about other network participants. It is important to note that this mechanism only requires to have access to a large enough fraction of the network such that the list of potential peering partners contains \enquote{enough} nodes\footnote{The required number of potential peers needed in the list depends on the gossip protocol as well as global system parameters such as the number of neighbors.}.
+
+\subsection{Choosing neighbors}
+
+Nodes choose half of their neighbors themselves and let the other half be comprised of neighbors that choose them. The two distinct groups of neighbors are consequently called:
+
+\begin{itemize}
+    \item \textit{Chosen neighbors.} The neighbors that the node proactively choose from his list.
+    \item \textit{Accepted Neighbors.} The neighbors that choose the node as their peer.
+\end{itemize}
+
+In order to select \emph{chosen neighbors} from the list of potential peering partners, we measure the distance between two nodes through the distance function~$d$ defined as
+\begin{equation*}\label{eq:salted_distance}
+    d(nodeId_1, nodeId_2, \zeta) = hash(nodeId_1 + \zeta) \oplus hash(nodeId_2),
+\end{equation*}
+where $\zeta$ is a public \textit{salt}\footnote{Salts defend against dictionary attacks or against their hashed equivalent, the pre-computed rainbow table attack.}.
+
+In order to connect to new neighbors, each node with ID~$ownId$ and public salt~$\zeta$ keeps a list of potential peers sorted by their distance $d(ownId, \cdot, \zeta)$.
+Then, the node sends them peering requests in ascending order containing its own node ID, its current public salt and its address (i.e., IP + port).
+After that, the requested node can decide to either accept or reject the connection as explained below.
+The connecting node repeats this process until it has established connections to enough neighbors.
+Those neighbors make up its list of \emph{chosen neighbors}.
+This entire process is also illustrated in Algorithm~\ref{alg:choose_neighbors}.
+
+\begin{algorithm}[htb]
+\DontPrintSemicolon
+\SetKwFunction{delete}{delete}
+\SetKwFunction{append}{append}
+\SetKwFunction{contains}{contains}
+\SetKwFunction{sendPeerRequest}{sendPeerRequest}
+\SetKwFunction{sortByDistanceAsc}{sortByDistanceAsc}
+\KwIn{desired amount of neighbors~$k$, current list of chosen neighbors~$\mathcal{C}$, list of potential peers~$\mathcal{P}$}
+\BlankLine
+$\mathcal{P}_{sorted}$ $\gets$ \sortByDistanceAsc{$\mathcal{P}$, $ownId$, $\zeta$}\;
+\BlankLine
+\ForEach{$p \in \mathcal{P}_{sorted}$}{
+    $peerRequest \gets$ \sendPeerRequest{p}\;
+    \BlankLine
+    \If{$peerRequest.accepted$}{
+        \append{$\mathcal{C}$, $p$}\;
+        \BlankLine
+        \If{$|\mathcal{C}| > k / 2$}{
+            \Return\;
+        }
+    }\Else{
+        \append{$\mathcal{P}$, $peerRequest.proposedCandidates$}\;
+        \BlankLine
+        $\mathcal{P}_{sorted}$ $\gets$ \sortByDistanceAsc{$\mathcal{P}$, $ownId$, $\zeta$}\;
+    }
+}
+\caption{Select \emph{chosen neighbors}}
+\label{alg:choose_neighbors}
+\end{algorithm}
+
+Similarly to the previous case, in order to accept neighbors, every node with ID~$ownId$ must generate a \textit{private} salt $\zeta^*$. When it receives a peering request from a node with ID $remoteId$, it measures $d(ownId, remoteId, \zeta^*)$ and only accepts the request if at least one of the following conditions is satisfied:
+\begin{itemize}
+    \item The connecting node is closer than an existing \emph{accepted neighbor}.
+    \item The node receiving the peer request does not have enough neighbors.
+\end{itemize}
+
+When a node rejects the peering request because it does not match the above requirements, it can use the public salt to propose new potential peers among its list. This is more formally explained in Algorithm~\ref{alg:filter_accepted_neighbors}.
+
+\begin{algorithm}[htb]
+\DontPrintSemicolon
+\SetKwFunction{len}{len}
+\SetKwFunction{distance}{distance}
+\SetKwFunction{accept}{accept}
+\SetKwFunction{drop}{drop}
+\SetKwFunction{reject}{reject}
+\KwIn{incoming peering request~$r$, desired amount of neighbors~$k$, current list of accepted neighbors~$\mathcal{A}$}
+\BlankLine
+\If{$|\mathcal{A}| < k / 2$}{
+    \accept{r}\;
+}\Else{
+    $distance_r$ $\gets$ $\distance{$ownId$, r.nodeId, $\zeta^*$}$\;
+    \BlankLine
+    \ForEach{a $\in \mathcal{A}$}{
+        $distance_a$ $\gets$ $\distance{$ownId$, a.nodeId, $\zeta^*$}$\;
+        \BlankLine
+        \If{$distance_r < distance_a$}{
+            \accept{r}\;
+            \drop{a}\;
+            \Return\;
+        }
+    }
+    \reject{r}\;
+}
+
+\caption{Filter \emph{accepted neighbors}}
+\label{alg:filter_accepted_neighbors}
+\end{algorithm}
+
+\subsection{Network reorganization}
+
+The public and the private salts help to create an asymmetric perception of the network, which is supposed to discourage an attacker from harming the system. In fact, the only way to target a node in the auto peering process is by brute forcing different node identities and hoping to get closer (in terms of distance~$d$) than an existing neighbor. To prevent brute force attacks from being successful, we let the salts be valid only for a certain amount of time, after which the node updates both its \emph{chosen neighbors} and its \emph{accepted neighbors}\footnote{Another approach of reducing an attackers ability to control the network topology is by including a \enquote{global source of randomness} when generating the salts.}.
+
+This frequent reorganization brings a twofold benefit: First, it prevents attackers from affecting the network topology; second, it favors new nodes that want to join the network as their peering requests will be accepted with larger probability.
+
+\subsection{Bootstrapping}
+
+A new node who wants to join the network initially knows nothing about the network.
+It neither knows the state of the ledger nor who is currently part of the network. To allow new nodes to get a first list of \enquote{other peers}, we implement a hard coded list of trusted \enquote{entry nodes} that will be run by the IF or trusted community members and that answer to peering requests from new nodes.
+
+This is common practice and is handled this way in virtually all distributed networks.
+
+\end{document}

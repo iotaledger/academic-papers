@@ -1,0 +1,56 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+In the introduction, we mentioned that the current IOTA main network uses the Coordinator to reach consensus and, more generally, to guarantee the security of the network. However, this centralized component should only be considered as a necessary bootstrapping mechanism, rather than a long-term solution. In this section, we first discuss the current status of the IOTA main network implemented through the IOTA reference implementation (IRI) software\footnote{{https://github.com/iotaledger/iri}}, and then we describe the challenges we are facing when building a \textit{Coo-less} network (i.e., a network without the Coordinator) according to the IOTA white paper~\cite{popov2018}. Since the Coordinator and its milestones are currently deeply embedded in IRI, removing those dependencies not only implies comprehensive changes to the software, but also leads to new research questions.
+
+\subsection{Current IOTA implementation}\label{sec:coo-dep}
+
+The current IOTA main network is implemented according to the IRI software, in which the Coordinator plays an important role. In the following we describe the main tasks implemented in the current main network, not all of them strictly related to consensus:
+
+\begin{itemize}
+	
+	\item \textit{Manual peering}. In order to join the Tangle, a node is required to connect to some existing nodes (\textit{peering}). The current IRI software only permits \textit{manual} peering, i.e., a node has to manually look for the addresses of other Tangle's nodes. Peering is fundamental to propagate transactions and to synchronize to the current status of the ledger. As for the latter, milestones are useful anchors to determine whether two nodes have fallen out of synchronization: If a node’s latest solid milestone is much older than its peers, it is probably lagging behind.
+	
+	\item \textit{Rate control mechanism}. In order to issue a transaction, a node must solve a cryptographic puzzle (Proof-of-Work). This is necessary to guarantee that nodes do not spam arbitrarily the network, or to avoid that they inject more transactions than the network can handle.
+	
+	\item \textit{Tip selection strategy}. Approving transactions is a fundamental procedure which leads to the DAG structure of the Tangle. To approve a transaction, a node must verify that no inconsistencies with respect to the ledger state are introduced. Although it is not possible to enforce which transaction to validate, the IOTA white paper suggests a tip selection algorithm based on a random walk which: (i) Discourages lazy behavior and encourages approving fresh tips; (ii) continuously merges small branches into a single large branch, thus increasing confirmation rate; (iii) in case of conflicts, kills off all but one of the conflicting branches.% Moreover, for scalability reasons the random walks start from a few milestones in the past rather than from the genesis\footnote{The exact starting point depends on the \textit{depth} parameter given to the \href{https://docs.iota.org/docs/iri/0.1/references/api-reference\#gettransactionstoapprove}{\texttt{getTransactiosToApprove} API call.}}.
+	
+	\item \textit{Consensus.} The main role of a milestones is to determine the consensus. The Tangle applies a simple rule: A transaction is confirmed if and only if it is referenced by a milestone. In IRI, this is reflected in the \href{https://docs.iota.org/docs/iri/0.1/references/api-reference\#getbalances}{\texttt{getBalances}} and \href{https://docs.iota.org/docs/iri/0.1/references/api-reference\#getinclusionstates}{\texttt{getInclusionStates}} API calls, which indicate how many tokens an account has and whether a transaction is confirmed, respectively.
+	
+\end{itemize}
+
+	Furthermore, we also want to highlight that milestones are used to optimize the IRI code: For instance, rather than compute the full ledger state starting from the genesis, an intermediate state is saved for each milestone; similarly, milestones are used in \textit{local snapshots}, i.e., the IRI pruning mechanism, which allows nodes to avoid storing older parts of the Tangle.
+
+\subsection{Coo-less IOTA network}
+	
+	As a preliminary implementation for a Coo-less network, we are building \textit{CLIRI}, which stands for \textit{Coo-less IRI}.
+	At its core, it is a fork of IRI, with all Coordinator-related components removed.
+	The main purpose of CLIRI is to provide a working testbed for running the first Coo-less IOTA network, on which we could emulate the various Coordicide proposals. This is a necessary first step towards understanding the challenges that a Coo-less main network will one day face.
+	
+	As discussed above, the Coordinator plays a crucial role in the current IOTA implementation. For this reason, building CLIRI introduces a number of challenges. For its first iteration, we follow the original IOTA white paper~\cite{popov2018} when possible, and we choose heuristic algorithms and simplified models otherwise:
+	
+	\begin{itemize}
+		\item \textit{Ledger validation}. Since rewriting the ledger computation logic without milestones is a significant effort, as a first iteration CLIRI only supports zero-value transactions. 
+		
+		\item \textit{Local snapshots}. We remove local snapshots on CLIRI, and we simply discard the entire database automatically at weekly intervals.
+		
+		\item \textit{Random walk starting point}. CLIRI chooses a tip at random, and then backtracks until reaching a transaction ``far enough'' in the past.
+		
+	\end{itemize}
+
+	CLIRI is currently at an early development stage, with the first testnet launched on March 5th, 2019.
+	
+	\subsection{New research challenges}\label{sec:cliri_limitations}
+	Apart from the aforementioned ``engineering'' choices for CLIRI, its logic is based on the IOTA white paper, and thus it shares the same modeling assumptions. The most significant of these is the \textit{(assiduous) honest transaction majority} condition~\cite{bramas2018}: Specifically, to be considered valid, the white paper consensus algorithm requires that the majority of transactions \textit{always} come from honest network participants, i.e., honest actors need to \textit{own} a majority of the hashing power \textit{and} to \textit{constantly produce transactions}. The implication is that honest nodes need to continuously send transactions, regardless of whether they are actually using the network or not. Furthermore, achieving this hashing majority must be expensive, otherwise it would be easy for malicious agents to buy enough hashing power and overtake the network. In addition to this incentivization problem, issuing transactions is subject to Proof-of-Work (PoW). Due to its complexity, slow nodes would be excluded from participating in the network.
+	
+	The above concerns directly lead to the following research questions which will be investigated throughout the paper:
+	
+	\begin{itemize}
+		\item \textit{Rate control}. A more efficient rate control algorithm is needed to solve the following tradeoff: If the PoW difficulty is too high, then small devices (e.g., phones or sensors) would take an unreasonably long amount of time to compute it, and will therefore be unable to send transactions; on the other hand, low difficulty can favor network congestion and/or spam attacks.
+		
+		\item \textit{Consensus}. We need a consensus mechanism which is solid under the honest transaction majority assumption without the support of the Coordinator.
+	\end{itemize}
+		
+	In the next section, we will introduce the notion of node identity which is a prerequirement to the solution of the above research topics.
+
+\end{document}

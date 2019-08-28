@@ -1,0 +1,21 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+In the following we will give a short overview of interesting questions that will -- in addition to the topics already presented in the paper -- play an important role in our future research:
+
+\begin{itemize}
+    \item In IOTA, conflicts are no independent yes/no questions, but there are connections as well as dependencies between them. This leads to the definition of \enquote{conflict sets} where it is the goal of the consensus mechanism to either find a single valid element or even a valid subset from them.
+    How can this dependencies be efficiently integrated into the consensus process and how can these conflict sets be detected efficiently.
+    
+    \item Explore and develop a concept of secure milestones, which are voted on, to enable finality as well es to guide the bootstrapping process of new nodes joining the network.
+    
+    \item Certain approaches -- like the fast probabilistic consensus, and the random peering for the cell consensus -- could benefit from the availability of a global distributed random number generator.
+    This is a concept already mentioned in scientific literature, but further exploration of this topic -- especially in the context of the concrete applications -- might be propitious. 
+    
+    % TODO: What else? Maybe about "Proof-of-stake" weights / wealth distribution
+    
+    % TSA, how to achieve monotonicity
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,36 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+In this paper, we outline our approach for the Coordicide project. In particular, we describe our main ideas around the consensus mechanism, security and protection against attacks, spam control and auto peering; all of which provide the building blocks that are cruicial for the Coordicide project. Although our proposal towards the path to Coordicide is now well-defined, we are currently evaluating various options and settings to implement and deploy these components together in a holistic framework. 
+
+\begin{comment}
+    
+
+\begin{itemize}
+    % State of the art / CLIRI
+    \item CLIRI is the most engineering-focused part of the Coordicide, and is centered on solving practical issues in converting the IRI codebase to a decentralized implementation.
+    As CLIRI matures, it will serve as the platform for integrating all of the different Coordicide components together.
+    
+    % Node accountability
+    \item By adding secured metadata to the communication layer it becomes possible to link transactions to their issuing node.
+    Together with global node IDs as well as the proposed token-based Sybil protection, this offers a secure foundation for the other approaches described in the paper.
+    
+    % Rate control
+    \item We propose a hybrid rate control algorithm achieving a reasonable compromise: slow nodes or users with low \textit{mana} can issue (a few) transactions at inexpensive prices, while at the same time faster users cannot spam the network due to a limitation on burst of transactions.
+
+    % Auto peering
+    \item We propose a secure and robust auto peering protocol, which uses the concept of private and public salt to allow network reorganization and protect the network against Eclipse attacks.
+    
+    % TSA
+    \item The tip selection strategy has been a crucial component since the inception of IOTA.
+    It continues to be of great importance when making the network more resilient against attacks and improving conflict resolution.
+    
+    % Voting
+    \item Finally, we propose two approaches to extend the previous consensus layer.
+    By retrieving opinions about conflicts from others directly, nodes get enabled to resolve conflicts pro-actively.
+\end{itemize}
+
+\end{comment}
+
+\end{document}

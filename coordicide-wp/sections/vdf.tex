@@ -1,0 +1,40 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+While the adaptive rate control algorithm described in this section mitigates some of the drawbacks of the PoW, we believe that, in the current era of distributed ledger ecosystems, the need for more efficient algorithms is evident. In the following, we present a more sustainable mechanism that might be used as a replacement of the PoW component: \textit{verifiable delay functions} (VDFs).
+
+Informally, the VDFs are special functions that are (i) difficult to evaluate, even under the assumption of using unbounded parallelism (i.e., using an infinite number of CPUs)~\cite{borodin1975} and (ii) easy to verify. Various researchers have proposed different VDFs based on specific number-theoretic functions (e.g., modular exponentiation~\cite{dwork1993, pietrzak2018}, supersingular isogenies over elliptic curves~\cite{defeo2019}, pairings over elliptic curves, injective rational maps between extensions of finite fields~\cite{boneh2018}). Compared to PoW, these functions bring the following advantages:
+\begin{itemize}
+    \item VDFs can be considered more environment friendly since they avoid mining races.
+    \item As they are not parallelizable, they make inefficient the usage of dedicated hardware (e.g., ASIC), inherently solving the problem of unfairness between slow and fast nodes.
+\end{itemize}
+The condition for resistance against parallelization is what makes the quest for such functions an interesting and highly non-trivial problem. From an implementation point of view, the main figure of merit is the ratio between the time needed to compute the solution of the function (evaluation) and the time needed to verify its correctness (verification). Table~\ref{tab:vdf} offers good insights on the comparison between different proposed VDFs with respect to this performance metric.
+
+%\begin{itemize}
+%    \item Modular exponentiation (Dwork-Naor spam protection algorithm, Rivest-Shamir-Wagner (RSW) time-lock puzzle, Pietrzak's algorithm and\break Wesolowski algorithm).
+%    \item Supersingular isogenies over elliptic curves~\cite{defeo2019}.
+%    \item Pairings over elliptic curves.
+%    \item Injective rational maps between extensions of finite fields~\cite{boneh2018}.
+%\end{itemize}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+ \textbf{VDF}                               & \textbf{ratio}  \\ \midrule
+ Exponentiation-based (RSW)~\cite{dwork1993, pietrzak2018}  & 8000:1 \\
+ Supersingular isogenies~\cite{defeo2019}   & 400:1     \\
+ Pairings over elliptic curves              & 300:1     \\
+ Injective rational maps~\cite{boneh2018}   & n/a       \\ \bottomrule
+\end{tabular}
+\caption{Evaluation/verification ratio for different VDFs.}
+\label{tab:vdf}
+\end{table}
+
+The first ideas about verifiable delay functions can be traced back to the seminal paper of Dwork and Naor in the field of spam protection~\cite{dwork1993}, but it is only after the recent paper by Boneh \textit{et al.}~\cite{boneh2018} that the interest in the development and implementation of VDFs has substantially increased. In fact, VDFs are already an essential ingredient in some DLT designs (e.g., Chia Network\footnote{\url{www.chia.net}}). Furthermore, \cite{boneh2018} has shown a potential application for decentralized randomness.
+We believe that VDFs can be of great help in replacing algorithms based on PoW as they are able to restrict the capabilities of nodes with strong hashing power.
+
+%Whilst the potential application of the VDFs for congestion control is a subject of studies at the moment, spam detection is a field where VDFs has already been applied: the Dwork-Naor algorithm, indeed, uses the square root over finite fields puzzle as a mechanism for spam protection. The main reason why their work has been considered as impractical is the fact that one has to use rather large finite fields to make the algorithm useful. At the time of the suggestion of the algorithm, early 1990s, the existing libraries for handling multiple-precision arithmetic were orders of magnitude slower than the current ones. Therefore, the conclusion that we have to use primes with several hundred thousands decimal digits has been considered as a substantial shortcoming of the Dwork-Naor algorithm. However, we have done more specific research based on i)~the current existing multiple-precision libraries and ii)~the accurate selection of the parameters of the Dwork-Naor algorithm (e.g., the characteristic of the finite field used). Our suggestion is to use computations over Mersenne and pseudo-Mersenne prime fields. Our initial simulations, based on the use of the use of Mersenne primes allows us to reach the same solution/verification ratio as in the case of RSW time lock puzzle and, therefore, can be directly implemented as a spam protection mechanism.
+
+\end{document}

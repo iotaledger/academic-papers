@@ -1,0 +1,63 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+A basic goal of every communication network is to handle the traffic injected by its nodes by limiting the rate of transactions joining the network. In fact, such a traffic could lead to unpleasant situations such as network congestion, due to resource limitations, or spam, due to malicious actors:
+
+\begin{itemize}
+    \item \textit{Congestion control.} In most networks, there are circumstances where the incoming traffic load is larger than what the network can handle. If nothing is done to restrict the influx of traffic, bottlenecks can slow down the entire network. A similar analysis can be applied to distributed ledgers, where the incoming traffic (i.e., transactions issued by the nodes of the network) exploits limited resources such as bandwidth, computational power, or disk space. Additionally, nodes can lose synchronization with each other, sometimes without being aware of it.
+    \item \textit{Spam detection.} Gossip protocols (which are currently implemented to forward transactions in the IOTA network) are an efficient and reliable way to disseminate information. These protocols have nevertheless a drawback: They are unable to limit the dissemination of spam messages. Indeed, messages are redundantly distributed in the network and it is enough that a small subset of nodes forward spam messages to have them received by a majority of nodes.
+\end{itemize}
+
+Rate limitation strategies for communication networks are well studied in the context of both congestion control~\cite{kelly1998} and spam detection~\cite{dwork1993}. As for DLTs, PoW is a built-in rate limitation mechanism, not only used to reach consensus. However, PoW leads to undesirable side effects such as mining races: The discrepancy between smaller general purpose devices and optimized hardware with respect to the PoW performance is several orders of magnitude. Hence, any rate control based on PoW would eventually leave smaller devices behind. A new transaction rate control mechanism for the Tangle is therefore required to deal with the global and per-node limitations of the network.
+
+\subsection{Rate control algorithm}
+
+In a pure PoW-based architecture, a high difficulty value would prevent low-power nodes from issuing transactions, which is not desirable, especially in the context of Internet-of-Things; on the other hand, low difficulty can quickly lead to network congestion. We propose an adaptive PoW algorithm to allow every node to issue transactions while penalizing spamming actions.
+
+In our algorithm, when a node decides to issue a transaction, it must solve a cryptographic puzzle where the difficulty is a function of the \textit{mana} owned and of the number of transactions issued recently.
+Assume node~$i$ generates $n_i^T$ transactions in the previous $T\gg h$ time units where $h$ is a bound on the network latency which means that, if a message is sent at time~$t$, then all online nodes will receive the same message within time $t + h$. The same node~$i$ has to set the difficulty of the PoW to $d_i$ defined by
+\begin{equation*}
+    d_i = d_0 + w(s_i, n_i^T),
+\end{equation*}
+where $d_0$ is the basic difficulty, and $w$ is a function that depends on the \textit{mana}~$s_i$ and on $n_i^T$.
+The time window~$T$, the difficulty~$d_0$ as well as the function $w$ are parameters chosen depending on the fairness level we are aiming for.
+%For instance, we expect that powerful nodes are penalized when the time window~$T$ becomes large as they need more work to issue several transactions in a short time.
+
+As an additional security measure, we require that the total number of transactions issued by a user is limited, i.e.,
+\begin{equation}\label{eq:threshold}
+    n_i^T \leq z(s_i), \qquad \forall i,
+\end{equation}
+where $z:\mathbb{R}^+\rightarrow\mathbb{R}^+$ is a function that depends on the \textit{mana}~$s_i$ such that the larger the \textit{mana} of a node, the higher the number of transactions the same node can issue.
+The threshold of Eq.~\eqref{eq:threshold} ensures that even a user with infinite computational power cannot arbitrarily spam the network.
+
+\subsection{Implementation details}
+
+For the sake of simplicity, we assume incoming transactions are checked in the same order as they are issued by the sending node.
+As the expected time needed to perform the PoW is typically much larger than the network latency $h$, this is a reasonable assumption.
+
+When a transaction is seen for the first time, the node stores the $id$ of the node issuing the transaction, the time $t_0$ at which it is received and the PoW difficulty. The identity~$id$ of the issuing node as well as its \textit{mana} $s_{id}$ can be determined using the methods described in Section~\ref{sec:node_acc}. Based on this information, it can then be checked that the number of transactions issued in the recent $T$ time units by the same node does not exceed the allowed maximum $z(s_{id})$ based on its \textit{mana} $s_{id}$ and that the difficulty of the most recent transaction is indeed sufficient.
+This idea is more formally described in Algorithm~\ref{alg:rate_control}.
+
+\begin{algorithm}[htb]
+\DontPrintSemicolon
+	
+\SetKwFunction{time}{time}\SetKwFunction{node}{nodeId}\SetKwFunction{difficulty}{difficulty}
+\KwIn{incoming transaction $t$, set of known transactions $\mathcal{X}$, time window $T$, basic difficulty $d_0$, weight function $w$.}
+\KwOut{forward or ignore $t$.}
+\BlankLine 
+$t_0$ $\gets$ \time{t}\;
+$id$ $\gets$ \node{t}\;
+$\mathcal{T}$ $\gets$ $t'\in\mathcal{X}$ such that $\time{$t'$} \in \left(t_0-T,t_0\right]$ and $\node{t'} = id$\;
+\BlankLine
+\If{$|\mathcal{T}|<z(s_{id})$ }{
+\If{$\difficulty{t} \geq d_0 + w(s_{id}, |\mathcal{T}|)$ }{
+\Return forward $t$\;
+}
+}
+\Return discard $t$\;
+\caption{Rate control algorithm}
+\label{alg:rate_control}
+\end{algorithm}
+
+\end{document}

@@ -25,6 +25,32 @@ In line with the IOTA Foundation's charter as a non-profit organization, our goa
      \label{fig:building-blocks}
 \end{figure}
 
+On a high level, our vision for the Coordicide can be explained in the following way. 
+We are looking for a \emph{probabilistic consensus} --- with probability very close to $1$, all honest participants of the network would agree on which transactions should be considered valid.
+%(``exponential beats polynomial'' magic,
+%$n^Me^{-\alpha n}\to 0$). 
+It is important to remark that one shouldn't be afraid of the probabilistic nature of it --- if something occurs with strictly
+positive probability, this doesn't yet mean it would ever occur 
+\emph{in practice}\footnote{as a quick example,
+try guessing at least one private key from Bitcoin addresses which belong to Satoshi; yet, the probability that a random 256-bit number is
+one of those private keys is strictly positive}.
+Another important idea is that, while we do need \emph{total} consensus 
+on what is really important (transactions' validity),we may not need total consensus on everything. Therefore, we may
+use an \emph{approximate} consensus \footnote{for example, on \emph{time} 
+--- it is something on which the approximate consensus already exists; another example when the total consensus is not necessary is the common sequence of random numbers: as explained below, it is already enough if most of the participants agree on the same number frequently enough} 
+to achieve the total one with high probability. 
+It is also a feature of our approach that the consensus (on transactions' validity) is an \emph{attracting state} in the following sense: small deviations from the absolute consensus on secondary things (e.g., local clocks, random number sequence that the nodes see, mana vectors) with high probability do not lead to deviations from the total consensus on transactions' validity. 
+Still, we keep the basic protocol simple: the only ``hard'' rule remains to be that a new transaction should approve two other transactions; 
+what eventually stays in the main tangle (not orphaned), 
+is valid\footnote{one of the reasons why we prefer using this approach, 
+is the following:
+if we allow conflicting transactions on the Tangle, 
+ this has to go coupled with a precise conflict-resolution rule, 
+ which can be never changed and likely has ``long-range'' dependencies''}.
+The above in line with the idea that ``IOTA is free'' \cite{popov2019feelessfree}. 
+This is because the actors will have flexibility to adapt the system to different environments by only adjusting the node's behaviors.
+
+
 In order to get rid of the Coordinator, a number of challenges must be solved. This working paper covers those challenges, which are summed up by the building blocks in Fig.~\ref{fig:building-blocks}. In the following, we give a concise overview about the current state of the Coordicide as well as future research directions:
 \begin{itemize}
     \item \textit{Node accountability}. In Section~\ref{sec:node_acc} we propose the concept of \emph{global node IDs} and we describe a novel Sybil protection mechanism that does not require node owners to risk or disclose their funds. Identifying the issuing node of a message is fundamental to enforce a specific network topology (through auto peering) or to penalize bad behaviours (through rate control).

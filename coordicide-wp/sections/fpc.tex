@@ -29,8 +29,8 @@ nevertheless, the protocol works with high probability
  are suitably chosen, and  
 some explicit estimates on the probability 
 that the protocol finalizes in the consensus state
-in a given time are also provided (Theorems~2.1
-and~2.4).
+in a given time are also provided (see Theorems~2.1
+and~2.4 of \cite{popov2019}).
 
 Differently from the classical work
 in this area, 
@@ -86,10 +86,13 @@ and only the subsequent double-spend gets canceled.
 
 A special feature of the protocol of~\cite{popov2019} is that it makes 
 use of a sequence of random numbers which are either
-provided by a trusted source or generated
+provided by a trusted source~\cite{nist:2019} or generated
 by the nodes themselves using some
-decentralized random number generating protocol,
-see e.g.~\cite{cascudo2017, popov2017, schindler2018, syta2017}.
+decentralized random number generating protocol 
+(provided that the proportion of the adversarial nodes is not too large) 
+by leveraging on cryptographic primitives such as verifiable secret sharing, 
+threshold signatures or verifiable delay functions,
+see e.g.~\cite{cascudo2017, popov2017, schindler2018, syta2017, boneh:2018}
 It is important to observe that,
 even if from time to time the adversary can get
 (total or partial) control 
@@ -102,6 +105,11 @@ of them do, this is already enough for the
 protocol (that is, the specific task
 of random number generation does not require
 any sort of ``strong consensus'').
+
+As described in Section~\ref{sec:sybil}, Sybil protection is implemented by \emph{mana}.
+Thus, any node participating in the voting process forms its quorum by weighting 
+the probability of selecting nodes proportionally to their \emph{mana} as well as allowing repetitions. 
+This, in turn, allows to create a bigger quorum by minimizing the communication overhead.
 
 We do not describe all the details of the proposed
 protocol here, and refer the interested reader to~\cite{popov2019} instead.

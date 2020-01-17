@@ -4,5 +4,5 @@ This is a repository with academic papers on topics related to the Tangle and IO
 
 ## Papers
 
-- [coordicide-wp](coordicide-wp) contains the Coordicde whitepaper.<br>
+- [coordicide-wp](coordicide-wp) contains the Coordicide whitepaper.<br>
 The PDF file can also be found here: https://files.iota.org/papers/Coordicide_WP.pdf

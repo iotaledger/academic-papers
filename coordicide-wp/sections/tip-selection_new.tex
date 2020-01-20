@@ -1,0 +1,128 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+\subsection{Importance and Motivation}
+
+The Tangle is a data structure built in accordance with the following rule:
+
+\begin{displayquote}
+    \textit{In order to join the Tangle, a transaction has to validate two existing transactions.}
+\end{displayquote}
+
+\noindent
+The validation of a transaction is a procedure that verifies whether an address owns the tokens spent\footnote{The actual validation process in IOTA is more complex, and we invite the interested reader to visit \url{https://docs.iota.org} for more information.}. If transaction~$y$ validates transaction~$x$, we say that~$y$ \textit{directly} 
+approves~$x$. Furthermore, if there is not a directed edge between the transactions~$x$ and~$y$, but there exists a directed path between them, then we say that~$y$ \textit{indirectly} approves~$x$.
+
+
+Although the Tip Selection is not part of the conflict resolution in our current approach to the Coordicide, it still plays many important roles in the Tangle. It keeps the Tangle growing in an scalable and decentralized way. This is facilitated by the users being the ones that validate other transactions, such that the flow of new transactions keeps continuously cementing older ones. Furthermore, this happens in a way that, as more users are using the network, the more secure and fast finality can be achieved, since the total number of approvals of a transactions increases much faster.  We also want to emphasize that the influence of the Tip Selection on properties of the Tangle has been studied recently, e.g.,~\cite{Cullenetal:19, FerKiSh:18, KuGa:18, popovSaaFinardi2017}.
+
+It is interesting to notice how the tip selection is one of the main ingredients that makes the Tangle a network of \textit{continuous consensus}. This is in the sense that ``young'' transactions have less transactions validating them and hence are prone to induce a small divergence of the ledger state among the nodes. As more and more new transactions approve a transaction, the more the nodes become aware of this transaction, increasing the level of consensus over time. For a network using probabilistic consensus such as with the Tangle, this is especially important since a higher quantity of approvals translates in an ever smaller probability of different views among the nodes, and this chance can be made as small as we need it to be. 
+
+
+The original IOTA white paper originally uses only a TSA based on a biased random walk to determine the tips to approve. This TSA comes with its own limitations, such as its computational complexity and that it needs to orphan branches of possibly honest transactions to resolve conflicts. With the new consensus mechanism being independent from the TSA, a much faster algorithm may be used to select tips and incentivise good behavior for the network. 
+
+
+In the rest of this section, we provide an overview of our
+current candidate for the default TSA.
+It is important to stress that, since the TSA is not (and cannot 
+be easily\footnote{It is, however, still possible to perform 
+a statistical analysis on the node's choices in order to
+try figuring out what sort of TSA it is using.}) 
+enforced, the choice of the particular TSA 
+is, \emph{ultimately}, 
+up to the node's owner. Therefore, the actors 
+will choose their TSAs in a \emph{reasonable} way, as argued in~\cite{popov2019feelessfree}. 
+Because of this intrinsic freedom of choice, and also because the ``space'' of all possible TSAs is enormous, it is crucial to have all reasonable options on the table. We are absolutely not obliged to be ever content with a particular version of TSA; instead, our vision is that, similarly to the human society itself, the system will continue evolving. Hence, we believe our current candidate to be an appreciated upgrade over the random walk based TSA and we expect the future input we receive to help us to improve the algorithm even more.
+
+\subsection{(Almost) URTS on a subset}\label{sec:tsa_urts}
+In this subsection\footnote{see also
+\url{https://iota.cafe/t/almost-urts-on-a-subset/234}}
+we aim to describe a tip selection
+rule which is a reasonable modification of the URTS
+(i.e., Uniformly Random Tip Selection) algorithm
+considered in the original whitepaper~\cite{popov2018}. 
+
+
+Selecting tips uniformly at random has advantages:
+every (non-lazy) tip gets eventually picked up with probability~$1$;
+also, at least in the situation when all nodes seek to select tips,
+the URTS is a Nash Equilibrium (knowing that other nodes select tips
+with equal probabilities, a given node has nothing to gain from 
+deviating from this behavior). Unfortunately, the URTS has the issue of not demotivating lazy-behavior. One possibility for solving this would be to only consider URTS on the subset on non-lazy tips, but this is too strict in the sense that if a lazy connection happens by any unexpected situation, the node would need to make an reattachment of the transaction. In this proposal we aim to improve the URTS in a way that it will demotivate such unwanted behaviors, while still keeping the possibility of promoting lazy transactions a viable option (therefore, reducing the number of reattachments). 
+
+
+The proposal for this new TSA is that, instead of choosing uniformly a ``good'' tip, we check all non-lazy approvals from the subset of good tips, and select one of those approvals uniformly at random. The selected tip for the TSA will be the tip from where the selected approval was originated. Observe that it is natural why this algorithm demotivates lazy behavior (since a lazy connection cannot be selected, a lazy tip has at most half the probability of a non-lazy tip), while keeping the possibility of lazy transactions to be promoted and approved if their issuer is willing to.
+
+Now, let us describe the algorithm, starting by defining what we consider a ``good'' tip. Consider a specific node~$j$. Then for any transaction~$v$,
+let us denote by
+\begin{itemize}
+ \item $t(v)$ the objective (signed) timestamp
+ of the transaction;
+ \item $r_j(v)$ the time of solidification of 
+ the transaction for this node
+ (i.e., the time when a transaction and all of its 
+ history is received by the node~$j$).
+\end{itemize}
+
+Fix positive constants $C_1,C'_1,C_2$ (which are not very large)
+and~$M$ (which is large). Suppose that the node~$j$ considers ~$v$ a tip,
+and~$v$ approves $v_1$ and~$v_2$.
+Then, we define the \emph{weight} $w_j(v)$ of the 
+transaction~$v$ for the node~$j$ to be null (hence, being a ``bad'' tip) in any of the following
+scenarios:
+\begin{itemize}
+ \item if 
+ \[t(v)\notin  [r_j(v)-C_1,r_j(v)+C'_1]\]
+ 
+ (i.e., the transaction's timestamp is either too much
+ to the past or too much to the future);
+ \item if
+  \[
+   \max_{i=1,2} (r_j(v)-t(v_i))>M,
+  \]
+  (this is in order to  avoid approving 
+ transactions that reference something ``too old'').
+\end{itemize}
+Otherwise (if the weight $w_j(v)$ was not set
+to~$0$ according to the above rules) define 
+\[
+ k_j(v) := \#\{i=1,2: r_j(v) - r_j(v_i)\leq C_2\}
+\]
+to be the number of ``nonlazy approvals'' that~$v$ did.
+Then, it would be natural for the $j$th node 
+to set $w_j(v):= k_j(v)$. For the tip selection,
+the node chooses~$v$ with a probability proportional to~$w_j(v)$.
+
+We may consider further modifications of this method, which 
+are meant to make it more resilient, for example against deliberate 
+attachments to non-tips that are not very old.
+For two transactions $u,v$ where $v$ approves $u$,
+we introduce the sibling number $s_j(v,u)\in \mathbb{N}$
+(again, with respect to the node~$j$) in the following
+way. If $v_0,\ldots ,v_k$ approved $u$ directly 
+and the node~$j$ received them in that consecutive order, 
+then $s_j(v_i,u)=i$.
+
+Let~$f:\mathbb{N}\to[0,1]$ be a nonincreasing function
+with $f(1)=1$ (for example, $f(m)=\alpha^{m-1}$ for 
+some~$\alpha\in (0,1]$).
+Then, set
+\begin{eqnarray}
+\label{df_weight}
+ w_j(v) &=& f(s_j(v,v_1))\1{r_j(v) - r_j(v_1)\leq C_2} \\ &&\!\!\!\!\!
+  + f(s_j(v,v_2))\1{r_j(v) - r_j(v_2)\leq C_2} . \nonumber
+\end{eqnarray}
+Again, we then just chose~$v$ 
+with probability proportional to~$w_j(v)$ for tip selection.
+To explain why this should be closer to a Nash equilibrium,
+recall the main idea of~\cite{popovSaaFinardi2017}:
+if some ``greedy'' actors start favoring a smaller
+subset of tips, they would create a competition between themselves (see Fig.~4 in \cite{popovSaaFinardi2017} which gives an idea
+why ``completely greedy'' strategies cannot be advantageous for the nodes). Therefore, they would be penalized if the weights are defined as 
+in~\eqref{df_weight}. 
+This tip selection should also be more resilient against the aforementioned
+attack (when an actor attaches transactions to non-tips, the sibling
+number of such transactions typically increases).
+
+\end{document}

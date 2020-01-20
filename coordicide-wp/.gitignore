@@ -1,4 +1,5 @@
 # Ignore PDFs
 *.pdf
+!20200120_Coordicide_WP.pdf
 
 *.DS_Store

@@ -7,7 +7,9 @@ These applications include:
 
 \begin{itemize}
     \item \textit{Rate control.}
-    In an overload scenario, where the nodes are trying to issue more transactions than the overall network can handle, particularly transactions originating from the most heavily contributing nodes should be blocked or penalized.
+    In an overload scenario, where the nodes are trying to issue more transactions than the overall network can handle (due to its physical limits), 
+    particular transactions originating from the most heavily 
+    contributing nodes should be blocked or penalized.
     \item \textit{Voting-based consensus mechanisms.}
     To prevent double voting and to associate votes with node weights, the actual votes must be linked to node IDs.
 \end{itemize}
@@ -27,32 +29,161 @@ In contrast to any data stored in the Tangle, the communication layer, therefore
 When node identities are relevant, a distributed system becomes vulnerable to Sybil attacks~\cite{douceur2002}, where a malicious entity masquerades as multiple counterfeit identities.
 This would overcome any mechanism that relies on a limited number of such identities and would open the network to coordinated attacks. A possible way to deal with this problem is described in the following section.
 
-\subsection{Sybil protection}\label{sec:sybil}
+\subsection{Sybil protection principles}\label{sec:sybil}
 
 One very common way to make such a Sybil attack harder is the so-called resource testing, where each identity has to prove the ownership of certain difficult-to-obtain resources.
-Since in the cryptocurrency world users own a certain amount of tokens, we propose a Sybil protection mechanism based on the ownership of such tokens.
-However, instead of requiring the identity to proof the ownership itself, we allow each user of the network issuing transactions to assign tokens to any node of his choosing.
-We call these tokens \textit{mana}; they serve as a hard to obtain resource as well as some form of \enquote{reputation} which can be assigned to trustworthy nodes.
-The fundamentals of the actual mechanism are described below:
+Since in the cryptocurrency world users own a certain amount of tokens, we propose a Sybil protection mechanism based on the ownership of such tokens. Specifically, we allow a user to assign a certain reputation value to a given node alongside its issued transaction. Such a reputation value, called \textit{mana}, is equivalent to the total funds transferred within the transaction.
 
-\begin{itemize}
-    \item When a transaction is issued, it generates a double flow:
-    It (i) transfers data or tokens from one address to another, and (ii) adds virtual tokens (called \textit{mana}) to some nodes.
-    The amount of \textit{mana} corresponds to the tokens transferred.
-    
-    \item The node ID that should receive the \textit{mana} must be specified in the signed part of the transaction.
-    The node gets credited with the \textit{mana} after a certain time.
-    This is necessary to prevent nodes from generating a new ID for every message they issue.
-    
-    \item As soon as the actual tokens are transferred again, the corresponding \textit{mana} is deducted from the previously referenced node, and can potentially be reassigned to a new node.
-\end{itemize}
+As anticipated, \textit{mana} is a crucial aspect in rate control, autopeering and voting. In the future, we expect mana to be only a specific aspect of a more comprehensive reputation system which includes other criteria, such as penalties for misbehavior or incentives for helping the network.
+Also, criteria which are \emph{external} to the system (informally, any sort of ``real-world importance'') may be used.
+
+Specifically, mana is a function whose input is a transaction, and whose output is the mana state, a vector which gives the amount of \textit{mana} staked to each node. There are several ways of defining a mana system, and through the last months of research we decided on one of such systems that have all the desirable properties the network wants. 
+
 
 We stress here that this process does not influence the actual balances in any way, but it is only used to give higher weight to \enquote{trusted} nodes.
 
+In the next subsection we present a base for our system of choice, and  following we properly define the model the network will use, as well as describe why this alteration of the base model is more desired.
+
+
+\subsection{The mana system}
+
+
+The principles of a mana system is that one should get or have more mana the more one contributes
+to the network. Contribution is naturally associated to how much stake one holds,
+but although having tokens helps the network, one should not be able to ``mine'' 
+an unrestrained amount of mana by simply holding some quantity
+of tokens for a large amount of time, or by frequently sending tokens around.
+
+Now we will define a mana system that has the described properties, and conclude the subsection with a possible improvement that would keep abrupt variations in mana from happening.
+
+To achieve this we introduce three new concepts:
+
+\begin{itemize}
+    \item \textit{Pending mana}. Addresses generate pending mana at a rate proportional to the stake they hold.
+    \item \textit{Mana}. When funds (i.e., IOTA tokens) are spent from an address, the pending mana that has been generated by this address, is converted to mana and pledged to a node\footnote{In practice, it may be also
+    be a good idea to only credit mana to the node after a (small)
+    amount of time~$\varepsilon_0$, as a further protective measure
+    against actors who might try moving funds very fast in order 
+    to possibly mess with the system by using network delays.}. 
+    Pending mana is now generated by the funds on the receiver's address.
+    \item \textit{Decay.} Both mana and pending mana decay at a rate proportional to its value, hence keeping mana from growing unrestrained over time. 
+\end{itemize}
+
+
+Let us now formalize these ideas and define the following quantities:
+\begin{itemize}
+    \item The amount of tokens an address $x$ holds
+    at a given time, $S$;
+    \item The generation rate for pending mana, $\alpha$;
+    \item The decay rate coefficient for mana and pending mana, $\gamma$;
+    \item The pending mana an address $x$ holds at time $t$, $m_x(t)$;
+    \item The mana a node $Z$ has at time $t$, $M_Z(t)$.
+\end{itemize}
+ 
+Consistently with the above informal explanation,
+the evolution of the pending mana on an address (while the tokens
+are not moved)
+satisfies the differential equation
+ \begin{equation}
+     \label{dequationp}\frac{d}{dt}m_x(t)=\alpha S -\gamma m_x(t).
+ \end{equation}
+Hence, if an address has $S$ tokens at time $0$, its pending mana can be calculated by solving \eqref{dequationp} to obtain that
+\begin{equation}
+   \label{deqsol1} m_x(t)=m_x(0)e^{-\gamma t}+\frac{\alpha S}{\gamma}(1-e^{-\gamma t}) .
+\end{equation}
+Note that the number of tokens on an address is a 
+piecewise constant function; so, the above equation
+can be used to calculate the pending mana in the general 
+case, by considering the intervals where the address' balance
+remains constant.
+In particular, in the case where the address had no tokens before the initial time (it received $S$ tokens at time $0$), \eqref{deqsol1} reduces to
+\begin{equation}
+   \label{deqsol2} m_x(t)=\frac{\alpha S}{\gamma}(1-e^{-\gamma t}).
+\end{equation}
+Observe that even though we stated that pending mana decays over time, we can see that \eqref{deqsol2} is strictly increasing. This happens due to the decay being proportional to its value, while the generation being a constant rate (equal to the number of tokens). This means that the decay rate is always lower than the generation rate and thus the pending mana is always increasing, but slower and slower as time increases, up to a point where we cannot see its growth anymore. 
+
+After being pledged to a node, mana decays over time. Hence the evolution of mana (without further pledging from addresses) for a node satisfies 
+\[
+\frac{d}{dt}M_Z(t)=-\gamma M_Z(t),
+\]
+and therefore
+\begin{equation}
+\label{mananode}M_Z(t)=M_Z(0) e^{-\gamma t}.
+\end{equation}
+Observe that from \eqref{deqsol1}, \eqref{deqsol2} and \eqref{mananode} the node can always calculate the mana and pending mana 
+of all nodes in the system, given that it knows the values of $\alpha$ and $\gamma$
+(which are public). 
+
+This model has two desired properties:
+\begin{enumerate}
+    \item \textbf{Mana cannot be gamed}, in the sense that the amount of mana received will not change depending on how often the user converts pending mana into mana or in how many addresses the tokens are split. To illustrate this let us give two examples.
+    
+    First consider that an address has $S$ tokens and will pledge the mana  generated to node $Z$ at two points in time: at time $t/2$ and at time $t$ (of course considering the user doing this also has control over the receiving address). We will show that pledging more often will give the same mana. Let us denote the mana received at the first pledging by $m_1$  and at the second pledging by $m_2$. The values of $m_1$ and $m_2$ are the same (as we have the same number of tokens generating pending mana over the same amount of time) and can be calculated by \eqref{deqsol2}:
+    \[
+    m_1=m_2=\frac{\alpha S}{\gamma}(1-e^{-\gamma t/2}).
+    \]
+    However, at time $t$, when $Z$ receives the mana $m_2$, the mana $m_1$ will have decayed for time $t/2$, hence using \eqref{mananode} we have that the mana that $Z$ has at time~$t$  is 
+    \begin{align*}
+    M_Z(t)&=m_1e^{-\gamma t/2}+m_2\\
+    &=\frac{\alpha S}{\gamma}(1-e^{-\gamma t/2})(1+e^{-\gamma t/2})\\
+    &=\frac{\alpha S}{\gamma}(1-e^{-\gamma t}),
+    \end{align*}
+    which is the same it would have received by pledging only once. 
+    
+    The second example is much simpler. If instead of having an address with~$S$ tokens we have $n$ addresses with $S/n$ tokens, 
+    all pledging to $Z$ at time~$t$, then by \eqref{deqsol2} the total mana received is
+    \begin{align*}
+    M_Z(t)&=n\times \frac{\alpha (S/n)}{\gamma}(1-e^{-\gamma t})\\
+    &=\frac{\alpha S}{\gamma}(1-e^{-\gamma t}),
+    \end{align*}
+    which again is the same value.
+    
+    \item \textbf{Mana is bounded}, both for a node with addresses summing $S$ tokens and, therefore, also for the entire network. 
+    To check this, observe that by~\eqref{mananode}, as the pending mana becomes mana, its value at the node only decays. Hence the maximal value of mana is the same as the maximal value that~\eqref{deqsol2} achieves, which is the asymptotic value as $t\to \infty$:
+    \begin{align*}
+    \lim \limits_{t\to \infty} m_x(t)&=\lim \limits_{t\to \infty}\frac{\alpha S}{\gamma}(1-e^{-\gamma t/2})\\
+    &=\frac{\alpha S}{\gamma}.
+    \end{align*}
+    Since this bound is a constant times the number of tokens, if we sum the maximal mana on all the possible addresses on the network, we get that at any time the maximal mana in the network 
+    can be bounded above in the following way
+\begin{equation}
+\label{eq_total_mana}
+        \text{Total amount of  Mana}
+    \leq \frac{\alpha}{\gamma} \times \text{Total
+    amount of IOTA tokens}.
+\end{equation}
+\end{enumerate}
+
+
+This approach has some interesting features:
+\begin{itemize}
+    \item Once an address gains control over the tokens, they must wait for their pending mana to gain their full potential.
+    \item Mana is easy to store and is snapshotable: its decay and growth can be deduced from changes in time and balance: if a nodes' pending mana and balance at $t_1$ is known, then its potential mana at time $t_2$ can be deduced for any $t_2>t_1$.  
+\end{itemize}
+
+
+This proposal of mana satisfies most of our needs but it still could be criticized for its abrupt variations over time: since we could have a large quantity of pending mana becoming mana for a node at once, many applications that depend on how much mana a node currently has could abruptly change their vision. To prevent this from happening, we will use an averaged version of mana $\bar{M}_Z(t)$ that is defined for a certain parameter $\Delta$ as 
+\begin{equation}
+    \label{MAmana} \bar{M}_Z(t)=\frac{1}{\Delta}\int \limits_{t-\Delta}^t M_Z(s) ds.
+\end{equation}
+
+In mathematical terms, the mana system $\bar{M}_Z$ is a \textbf{smoothing} of the mana system $M_Z$, obtained by applying \textbf{moving averages} to their value over time. 
+
+There are two things to notice about $\bar{M}_Z$:
+\begin{itemize}
+    \item The system $\bar{M}_Z$ is as simple as $M_Z$, in the sense that if we have the values of $M_Z$, the calculation of $\bar{M}_Z$ can be done without significant computational cost.
+    \item Differently from $M_Z(t)$, the function $\bar{M}_Z(t)$ is continuous. This means that after the pledge of mana from an address, the value of  $\bar{M}_Z(t)$ will slowly increase until it achieves its maximum value. The speed of this increase will depend on the parameter $\Delta$.
+\end{itemize}
+
+
+\subsection{Comparison with existing schemes}
+
 The amount of \textit{mana} people can delegate is determined by how many tokens they own, which means that people who own more tokens will have a larger influence in this process.
 In particular, nodes could accumulate large amounts of \textit{mana} without having much stake in the network of their own.
-In a traditional \textit{proof-of-ownership} Sybil protection mechanism, each node has to prove that it owns a certain amount of collateral. Conversely, delegating \textit{mana} brings several key advantages: As \textit{mana} is credited as part of regular transactions, nodes do not have to constantly use their account's private keys to sign, which would pose a severe security risk;
-furthermore, this approach does not need incentives for node operators to own or declare a high amount of tokens; finally, users can issue additional \textit{mana} to nodes providing good service to the community.
+In a traditional \textit{proof-of-ownership} Sybil protection mechanism, each node has to prove that it owns a certain amount of collateral. Conversely, delegating \textit{mana} brings several key advantages.
+First, since \textit{mana} is credited as part of regular transactions, nodes do not have to constantly use their address's private keys to sign, which would pose a severe security risk.
+Furthermore, this approach does not require all node operators to own or declare high amounts of tokens; finally, users can issue additional \textit{mana} to nodes providing good service to the community.
 
-Since we have now established reliable node identities, we can use these identities to discover and connect to other nodes in the network.
+Since we have now established reliable node identities, we can use these identities to discover and connect to other nodes in the network
+while taking their mana into account.
 \end{document}

@@ -2,39 +2,80 @@
 
 \begin{document}
 
-While the adaptive rate control algorithm described in this section mitigates some of the drawbacks of the PoW, we believe that, in the current era of distributed ledger ecosystems, the need for more efficient algorithms is evident. In the following, we present a more sustainable mechanism that might be used as a replacement of the PoW component: \textit{verifiable delay functions} (VDFs).
+While the adaptive PoW algorithm described in Section~\ref{sec:adaptive_pow} mitigates some of the drawbacks of PoW, we believe that, in the current era of distributed ledger ecosystems, the need for more efficient algorithms is evident. In the following, we present a more sustainable mechanism that might be used as a complete replacement of the PoW component based on \textit{verifiable delay functions} (VDFs).
 
-Informally, the VDFs are special functions that are (i) difficult to evaluate, even under the assumption of using unbounded parallelism (i.e., using an infinite number of CPUs)~\cite{borodin1975} and (ii) easy to verify. Various researchers have proposed different VDFs based on specific number-theoretic functions (e.g., modular exponentiation~\cite{dwork1993, pietrzak2018}, supersingular isogenies over elliptic curves~\cite{defeo2019}, pairings over elliptic curves, injective rational maps between extensions of finite fields~\cite{boneh2018}). Compared to PoW, these functions bring the following advantages:
+\subsubsection{Preliminaries}
+
+Informally, the VDFs are special functions that are (i) difficult to evaluate, even under the assumption of using unbounded parallelism (i.e., using an infinite number of CPUs)~\cite{borodin1975} but (ii) easy to verify. Compared to PoW, these functions bring the following advantages:
 \begin{itemize}
     \item VDFs can be considered more environment friendly since they avoid mining races.
-    \item As they are not parallelizable, they make inefficient the usage of dedicated hardware (e.g., ASIC), inherently solving the problem of unfairness between slow and fast nodes.
+    \item As they are not parallelizable, they make the usage of dedicated hardware inefficient (e.g., ASIC), inherently solving the problem of unfairness between slow and fast nodes.
 \end{itemize}
-The condition for resistance against parallelization is what makes the quest for such functions an interesting and highly non-trivial problem. From an implementation point of view, the main figure of merit is the ratio between the time needed to compute the solution of the function (evaluation) and the time needed to verify its correctness (verification). Table~\ref{tab:vdf} offers good insights on the comparison between different proposed VDFs with respect to this performance metric.
 
-%\begin{itemize}
-%    \item Modular exponentiation (Dwork-Naor spam protection algorithm, Rivest-Shamir-Wagner (RSW) time-lock puzzle, Pietrzak's algorithm and\break Wesolowski algorithm).
-%    \item Supersingular isogenies over elliptic curves~\cite{defeo2019}.
-%    \item Pairings over elliptic curves.
-%    \item Injective rational maps between extensions of finite fields~\cite{boneh2018}.
-%\end{itemize}
+The first ideas about verifiable delay functions can be traced back to the seminal paper of Dwork and Naor in the field of spam protection~\cite{dwork1993}, but it is only after the recent paper by Boneh \textit{et al.}~\cite{boneh2018} that the interest in the development and implementation of VDFs has substantially increased. Various researchers have proposed different VDFs based on specific number-theoretic functions (e.g., modular exponentiation~\cite{dwork1993, pietrzak2018}, supersingular isogenies over elliptic curves~\cite{defeo2019}, pairings over elliptic curves, injective rational maps between extensions of finite fields~\cite{boneh2018}). In fact, VDFs are already an essential ingredient in some DLT designs (e.g., Chia Network\footnote{\url{www.chia.net}}). Furthermore, \cite{boneh2018} has shown a potential application for decentralized randomness.
 
-\begin{table}[h]
-\centering
-\begin{tabular}{@{}lc@{}}
-\toprule
- \textbf{VDF}                               & \textbf{ratio}  \\ \midrule
- Exponentiation-based (RSW)~\cite{dwork1993, pietrzak2018}  & 8000:1 \\
- Supersingular isogenies~\cite{defeo2019}   & 400:1     \\
- Pairings over elliptic curves              & 300:1     \\
- Injective rational maps~\cite{boneh2018}   & n/a       \\ \bottomrule
-\end{tabular}
-\caption{Evaluation/verification ratio for different VDFs.}
-\label{tab:vdf}
-\end{table}
 
-The first ideas about verifiable delay functions can be traced back to the seminal paper of Dwork and Naor in the field of spam protection~\cite{dwork1993}, but it is only after the recent paper by Boneh \textit{et al.}~\cite{boneh2018} that the interest in the development and implementation of VDFs has substantially increased. In fact, VDFs are already an essential ingredient in some DLT designs (e.g., Chia Network\footnote{\url{www.chia.net}}). Furthermore, \cite{boneh2018} has shown a potential application for decentralized randomness.
-We believe that VDFs can be of great help in replacing algorithms based on PoW as they are able to restrict the capabilities of nodes with strong hashing power.
+It is worth reiterating that spam detection is a field where VDFs has already been applied by the Dwork-Naor algorithm, which uses the square root over finite fields puzzle. The main reason why their work has been considered as impractical is the fact that one has to use rather large finite fields to make the algorithm useful. At the time of the suggestion of the algorithm, early 1990s, the existing libraries for handling multiple-precision arithmetic were orders of magnitude slower than the current ones. %Therefore, the conclusion that we have to use primes with several hundred thousands decimal digits has been considered as a substantial shortcoming of the Dwork-Naor algorithm. However, we have done more specific research based on i)~the current existing multiple-precision libraries and ii)~the accurate selection of the parameters of the Dwork-Naor algorithm (e.g., the characteristic of the finite field used). Our suggestion is to use computations over Mersenne and pseudo-Mersenne prime fields. Our initial simulations, based on the use of the use of Mersenne primes allows us to reach the same solution/verification ratio as in the case of RSW time lock puzzle and, therefore, can be directly implemented as a spam protection mechanism.
 
-%Whilst the potential application of the VDFs for congestion control is a subject of studies at the moment, spam detection is a field where VDFs has already been applied: the Dwork-Naor algorithm, indeed, uses the square root over finite fields puzzle as a mechanism for spam protection. The main reason why their work has been considered as impractical is the fact that one has to use rather large finite fields to make the algorithm useful. At the time of the suggestion of the algorithm, early 1990s, the existing libraries for handling multiple-precision arithmetic were orders of magnitude slower than the current ones. Therefore, the conclusion that we have to use primes with several hundred thousands decimal digits has been considered as a substantial shortcoming of the Dwork-Naor algorithm. However, we have done more specific research based on i)~the current existing multiple-precision libraries and ii)~the accurate selection of the parameters of the Dwork-Naor algorithm (e.g., the characteristic of the finite field used). Our suggestion is to use computations over Mersenne and pseudo-Mersenne prime fields. Our initial simulations, based on the use of the use of Mersenne primes allows us to reach the same solution/verification ratio as in the case of RSW time lock puzzle and, therefore, can be directly implemented as a spam protection mechanism.
+\subsubsection{Protocol}
+
+In this section, we present a novel anti-spam mechanism for IOTA based on Wesolowski VDF~\cite{Wesolowski} which aims to overcome the limitations of PoW (we choose the Wesolowski construction because it guarantees fast verification time and low overhead). The research on VDF is actively ongoing and this algorithm can be considered as a future replacement for adaptive PoW.
+
+As an initial setup for the protocol, the network participants are required to agree on (i) a public parameter $N$, which will serve as the modulus for the VDF, and on (ii) a cryptographic hashing function $H$, which will be used in the computation of the proof. As for (i), the parameter $N=p\cdot q$ is an RSA modulus computed as the product of two prime numbers of the same order, i.e., having the same bit-length. The security of the entire mechanism relies on the length of $N$: the longer the modulus is, the more difficult it is to find its factorization. A fundamental question is how to generate the RSA modulus without disclosing its factorization to any of the network participants or relying on any sort of centralization. The literature on distributed RSA keys generation already counts several existing solutions~\cite{Boneh1997, Damgard2010, Hazay, Frederiksen}. We describe our proposal in~\cite{attias2019} where our algorithm exploits smooth numbers to generate fast prime numbers~\cite{dimitrov2019} and, hence, to reduce the overall communication complexity. As for (ii), for a given binary message $m\in\{0,1\}^*$, we define a hashing function $H$ with security level $k$ (i.e., breaking the hashing function's security would take approximately $2^k$ computations) such that $H(m): \{0,1\}^* \mapsto [0,2k]$. Having this in mind, we also define $H_{prime}(m)$ as the smallest prime greater or equal to $H(m)$ for a given message $m$:
+    \begin{equation*}
+        H_{prime}(m) = \min\{x \in\mathbb{N} \ | \ x \geq H(m) \wedge x \ \texttt{prime}\}.
+    \end{equation*}
+
+Each time a node tries to issue a transaction, it has to compute the VDF solution $y$, which can be solved only using $\tau$ sequential squarings, such that
+\begin{equation}\label{eq:eval}
+    y = x^{2^\tau} \Mod N,
+\end{equation}
+where $x = H(m)$. The evaluation takes as inputs the message hash $x$ and a difficulty $\tau\in\mathbb{N}$, computed depending on mana. Furthermore, we enforce that a node must choose $m$ as the VDF output of its previous transaction. In this way, the protocol ensures the sequentiality of the VDF evaluations because a node has to wait for a VDF to complete before starting a new computation. In other terms, VDFs cannot be run in parallel in order to overcome node's allowed throughput.
+
+\begin{algorithm}[ht]
+\SetAlgoLined
+\SetKwInOut{Input}{input}
+\SetKwInOut{Output}{output}
+\Input{$m\in\{0,1\}^*$, $\tau\in\mathbb{N}$}
+\Output{$\pi\in[0,N-1]$, $l$ prime $\in [0,2^{2k}-1]$}
+
+ $x\leftarrow H(m)$\\
+ $y\leftarrow h$\\
+ \For{$k \leftarrow 1$ to $\tau$}{
+  $y\leftarrow y^2$
+ }
+ 
+ $l\leftarrow H_{prime}(x+y)$\\
+ $\pi=x^{\floor{2^\tau/l}}$\\
+ \textbf{return} $(\pi,l)$
+ \caption{Evaluation and proof of the VDF}\label{alg:eval_proof}
+\end{algorithm}
+
+\begin{algorithm}[ht]
+\SetAlgoLined
+\SetKwInOut{Input}{input}
+\SetKwInOut{Output}{output}
+\Input{$x,\tau,\pi,l$}
+\Output{$\top$ or $\bot$}
+
+
+ $x\leftarrow H(m)$\\
+ $r\leftarrow 2^\tau\ \Mod l$\\
+ $y\leftarrow \pi^l\cdot x^r$\\
+ 
+ \uIf{$l=H_{prime}(x+y)$}{
+  \textbf{return} $\top$
+ }
+ \Else{
+  \textbf{return} $\bot$
+ }
+ \caption{Verification of the VDF}\label{alg:verif}
+\end{algorithm}
+
+Unlike PoW, in VDF there is no trivial way to verify whether a node has indeed performed the work to obtain the output $y$. For this reason, we propose to attach an additional number, the \emph{proof}, to help other nodes during the verification. In order to generate the proof, the node computes $l=H_{prime}(x+y)$
+and $\pi=x^{\floor{2^\tau/l}}$.
+The summation between $x$ and $y$ ensures that the challenge has been successfully solved. In order to keep the transaction size small, the evaluator will only attach the resulting proof, i.e., the pair $\{l, \pi\}$, since the solution $y$ can be inferred from it. The Algorithm~\ref{alg:eval_proof} describes the evaluation and proof processed by a node.
+
+A node receiving a new transaction has to reconstruct the solution $y$ to verify whether the VDF has been properly evaluated. To do it, the node will compute $y=\pi^l\cdot x^r$, where $r=2^\tau\ \Mod l$. The challenge $y$ is then correct if $l^\prime=l$, where $l^\prime=H(x+y)$. We describe the verification task in Algorithm~\ref{alg:verif}.
 
 \end{document}

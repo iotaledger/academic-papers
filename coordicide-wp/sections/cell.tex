@@ -4,11 +4,11 @@
 
 \begin{document}
 \label{s_cellular}
-The second implementation discussed in this paper is \textit{cellular automata} (CA). The use of a CA approach has originally been developed as a formal description of the Ising model~\cite{ising1925}.
+The second implementation discussed in this paper is \textit{cellular automata} (CA). The CA approach, also known as majority dynamics, has originally been developed as a formal description of the Ising model~\cite{ising1925} and is extensively studied, see e.g.,~\cite{AbMo:15, Beetal16,  GaZe:18, MaRo:08, MoNeTa:13, Osetal:10, TaKiFu:96, WoOl:08}. More recently, it is also adopted in DLTs projects~\cite{nkn}.
 One of the biggest advantages of the CA-based techniques over other consensus algorithms is the opportunity to achieve a very high level of parallelism.
-This advantage alone is a sufficient incentive for deeper studies. CA brings the following novel key properties:
+This advantage alone is a sufficient incentive for deeper studies. Our proposed CA implementation brings the following novel key properties:
 \begin{itemize}
-    \item Every node acts as a cellular automaton~\cite{codd1968} that, in the presence of conflicts, changes its opinion only based on the state of its direct neighbors and always adopting the majority opinion. 
+    \item Every node acts as a cellular automaton~\cite{codd1968} that, in the presence of conflicts, changes its opinion only based on the state of its direct neighbors and always adopts the majority opinion. 
     \item The set of neighbors of a node does not change during one run of the consensus algorithm.
     In this case, the reorganization mentioned in Section~\ref{sec:peering} must only happen for different runs, i.e., different conflicts.
     \item When evaluating the opinions of neighbors, nodes will require a “proof” that includes the opinions of the neighbors' neighbors. This will allow nodes to monitor each others' behavior and prevents a node from lying independently of its neighbors.
@@ -16,8 +16,6 @@ This advantage alone is a sufficient incentive for deeper studies. CA brings the
     This information is then also broadcasted to the network for other nodes to verify and mark that corresponding node as malicious and prevent future connection attempts.
 \end{itemize}
 
-\textbf{(not to forget: add references to NQN etc. and explain our new contributions,
-`proving-the-vote')}
 At the beginning of each round, every node sends a ``heartbeat'' of its current status. 
 This includes its signed current opinion, as well as the opinions of each of its neighbors from the previous round, each signed by the issuing node.
 Since the previous opinions of the neighbors cannot be faked, every node receiving this heartbeat can validate that the current opinion is indeed correct and follows the rules of the consensus mechanism.
@@ -86,11 +84,9 @@ We formalize the above ideas in the consensus protocol described in the next sub
 \paragraph{Model}
 
 Suppose that there is a network composed of $n$ nodes, and these nodes need to come to a consensus on the value of a bit.
-For clarity, we assume in the following that each node is directly connected to $k$ neighbors, through the auto peering mechanism described in Section~\ref{sec:peering}.
+For clarity, we assume in the following that each node is directly connected to $k$ neighbors, through the autopeering mechanism described in Section~\ref{sec:peering}.
 The set of neighbors of node~$i$ is denoted by $N_i$.
-The auto peering mechanism is a key factor for the security of this approach: Indeed, a malicious node should not be able to select or influence its neighbors.
-%On the contrary case, it would prefer other malicious nodes and effectively render the “proof” useless.
-%If, on the other hand, the neighbors are verifiably random -- which needs to be achieved by modification in the peering system -- the probability that a sufficiently large \enquote{island} of malicious nodes arises can be controlled with the parameter~$k$.
+The autopeering mechanism is a key factor for the security of this approach, since a malicious node should not be able to select or influence its neighbors.
 
 During each stage of the algorithm, each node holds an opinion on the value of the bit.
 The opinion can be either $0$, $1$ or $\bot$, depending on whether the node prefers 0, 1 or none at all.
@@ -107,18 +103,9 @@ The protocol depends on the following parameters:
 
 \paragraph{Algorithm}
 
-\begin{figure}[h]
+\begin{figure}%[H]
 	\captionsetup[sub]{font=footnotesize}
 	\centering
-%	\begin{subfigure}[b]{0.32\linewidth}
-%		\includegraphics[width=\linewidth]{ca1}
-%		\caption{two conflicting transactions are issued}
-%	\end{subfigure}
-%	\hfill
-%	\begin{subfigure}[b]{0.32\linewidth}
-%		\includegraphics[width=\linewidth]{ca2}
-%		\caption{nodes form their initial opinions}
-%	\end{subfigure}
 	\hfill
 	\begin{subfigure}[b]{0.49\linewidth}
 		\includegraphics[width=\linewidth]{ca3}

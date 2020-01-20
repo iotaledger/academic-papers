@@ -1,0 +1,46 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+Since berserk strategies are the most severe attacks, the security of the protocol can be improved if berserk nodes can be identified. We, therefore, propose  a detection mechanism that is based on the record of nodes’ responses.
+In the proposed berserk detection protocol nodes exchange information about the opinions received in the previous rounds. A subsequent analysis of this information  can then reveal the berserk behavior. Upon discovering malicious voting patterns, nodes would gossip the proofs, such that all of the other honest network participants drop the berserk node.  
+
+\paragraph{The Protocol.}
+We allow that a node can ask a queried node for a list of opinions received during the previous round of FPC voting. We call such a list $v$-list and we may request for it in several ways. For example, the full response message to the request of a $v$-list and the opinions could be comprised of the opinion in the current round and the received opinions from the previous round. We do not require nodes to apply this procedure for every member of the quorum or every round. For instance, each node could request it with a certain probability or if it has the necessary bandwidth capacity available. Furthermore, we can set an upper bound on this probability on the protocol level so that spamming of requests for $v$-lists can be detected. We denote this probability that an arbitrary query request includes a request for a $v$-list by $p$.
+
+A more formal understanding of the approach is the following: assume that in the last round a node $y$ received $k$ votes, submitted by nodes $z_1,...,z_k$. If a node $x$ asks $y$ for a $v$-list, then $y$ sends votes submitted by $z_1,...,z_k$ along with the identities of $z_1,...,z_k$ but without their signatures. This reduces the message size. Node $x$ compares the opinions in the $v$-list submitted by $y$ with other received $v$-lists. If $x$ detects any trace of a suspicious behavior it will ask the node $y$ to send it the associated signatures that would prove the malicious behaviour. Having collected the proof the honest node gossips the evidence to the network and the adversary node will be dropped by all honest nodes. 
+Since a single evidence for berserk behaviour is sufficient, further evidence does not yield any additional benefit. Therefore, in order to prevent spam, once a node propagated a proof for a given node to be berserk, it is not required to forward additional proofs even though the content may be different. 
+
+
+\paragraph{ Expected number of rounds before detection.}
+
+To test how reliable this detection method is and what the communication overhead would be, we carry out the following calculations.
+We are interested in the probability of detecting a berserk adversary since the inverse of this value gives us an estimation of how many rounds are required to detect malicious behaviour. If the number of rounds is sufficiently small the protocol allows for fast detection of a berserk attacker. 
+
+
+
+
+Let us consider the following scenario: Among $n$ nodes there is a single berserk node. In the last round, the adversarial node was queried $k$ times, which is the expected number of received query requests (if we pick nodes with uniform probability).  Furthermore, it sends $k f$ votes with opinion 0 and $(1-f) k$ votes with the opinion 1 to different nodes in the network. Let us call the first group $G_0$ and the second one $G_1$.
+
+The probability that an honest node $x$ requests a $v$-list from a node from the group $G_0$ equals $pfk/n$ and $p(1-f)k/n$ for $G_1$. Note that the events of receiving $v$-lists from $G_0$ and $G_1$ are not independent. The probability that $x$ receives $v$-lists that allow for the detection of the berserk node equals
+$$P(x {\text{ receives opinion from }} G_0 {\text{ and }} G_1)= \frac{p^2 (1-f)fk^3(k-1)}{n^2}+\mathcal{O}\Big(\frac{k^6p^3}{n^3}\Big).$$
+Then using the approximation  $(1-\varepsilon)^a = 1-a\varepsilon + \mathcal{O}(\varepsilon^2)$ the probability that some node detects the berserk behaviour equals
+\[
+P({\text{Some node detects malicious node}}) = \frac{p^2 (1-f)fk^3(k-1)}{n}+\mathcal{O}\Big(\frac{k^6p^3}{n^2}\Big).
+\]
+
+For example, in a system with $n=10000$, $k=30,  p=0.1$ and  $f=1-f =0.5$ the detection probability is  $\approx 0.2$. Assuming that the full FPC voting for a conflict takes about $15$ rounds, berserk nodes can be detected within one FPC  voting cycle with high probability. 
+
+\paragraph{Improvements: opinion history comparison.}
+In the analysis presented above, nodes compare opinions from a single, previous round. However, we can increase the efficiency of the protocol when the nodes compare opinions from more than just the last round, i.e.~nodes may compare entire histories of opinions rather than only the current and last opinions. By history, we mean a list of all held opinions by a given node in consecutive rounds. For example, if a node is in the $m$-th round on voting on a particular conflict, its history consists of $m$ bits and each of them corresponds to the opinion in one of the $m$ rounds. When such a node is asked to give its current opinion it would respond with the $m$ bits in the message.  
+
+Note that nodes could compare the histories of opinions of different sizes. For example, when a node $x$ receives the voting history from the same node $y$ in the $m_1$th and $m_2$th rounds ($m_1 < m_2$) it could try to find traces of the berserk behavior on the overlapping $m_1$ rounds. With this method, the effectiveness of the berserk detection increases substantially. An obvious drawback of this approach would be that, in order for such a protocol to work, we would require each node queried in FPC to send its entire opinion history (on a particular  conflict). This opinion history would grow with each round of voting by one bit. Moreover, nodes would need to allocate some memory to keep both the history of their own opinions and the history of the opinions of other nodes. However, the additional communication cost is not very high. 
+\newline
+\newline
+
+
+
+
+
+
+\end{document}

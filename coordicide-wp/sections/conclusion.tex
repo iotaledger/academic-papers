@@ -2,7 +2,7 @@
 
 \begin{document}
 
-In this paper, we outline our approach for the Coordicide project. In particular, we describe our main ideas around the consensus mechanism, security and protection against attacks, spam control and auto peering; all of which provide the building blocks that are cruicial for the Coordicide project. Although our proposal towards the path to Coordicide is now well-defined, we are currently evaluating various options and settings to implement and deploy these components together in a holistic framework. 
+In this paper, we outline our approach for the Coordicide project. In particular, we describe our main ideas around the consensus mechanism, tip selection, security and protection against attacks, spam control and autopeering; all of which provide the building blocks that are crucial for the Coordicide project. Our proposal towards the path to Coordicide is now well-defined, and we are currently implementing and evaluating various options in our prototype code \emph{GoShimmer}. 
 
 \begin{comment}
     
@@ -19,8 +19,8 @@ In this paper, we outline our approach for the Coordicide project. In particular
     % Rate control
     \item We propose a hybrid rate control algorithm achieving a reasonable compromise: slow nodes or users with low \textit{mana} can issue (a few) transactions at inexpensive prices, while at the same time faster users cannot spam the network due to a limitation on burst of transactions.
 
-    % Auto peering
-    \item We propose a secure and robust auto peering protocol, which uses the concept of private and public salt to allow network reorganization and protect the network against Eclipse attacks.
+    % Autopeering
+    \item We propose a secure and robust autopeering protocol, which uses the concept of private and public salt to allow network reorganization and protect the network against Eclipse attacks.
     
     % TSA
     \item The tip selection strategy has been a crucial component since the inception of IOTA.

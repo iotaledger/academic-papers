@@ -2,33 +2,95 @@
 
 \begin{document}
 
-In IOTA, a node is the machine owning all the information about the Tangle. In order for the network to work efficiently, nodes exchange information with each other to be kept up-to-date about the new ledger state. Currently, a manual peering process is used for nodes to mutually register as neighbors. However, manual peering might be subject to attacks (e.g., social engineering) to affect the network topology. To prevent these attacks, and to simplify the setup process of new nodes, we introduce a mechanism that allows nodes to choose their neighbors \textit{automatically}. The process of nodes choosing their neighbors without manual intervention by the node operator is called \emph{auto peering}.
+In the IOTA protocol, a node (or peer) is a machine storing the information about the Tangle, IOTA’s underlying data structure.
+%
+In order for the network to work efficiently and for the nodes to be kept up-to-date about the ledger state, nodes exchange information, such as new transactions, with each other.
+%
+Each node establishes a communication channel with a small subset of nodes (i.e., neighbors) via a process called \emph{peering}.
+%
+The peering process is potentially vulnerable to various attacks.  
+%
+For instance, if all of a node's neighbors are controlled by an attacker, then the attacker has complete control over the node's view of the Tangle, leaving the victim node vulnerable to a host of scams.  
+%
+This type of attack is known as an Eclipse attack~\cite{germanus2014mitigating, eclipseOnBitcoin,  ismail2015detecting}. 
+%
 
-Specifically, in this section we propose an auto peering mechanism which achieves two important goals: First, it creates an infrastructure where new nodes can easily join the network; second, we make sure that an attacker cannot target specific nodes during the peering process, i.e., we ensure the network to be secure against Eclipse attacks.
+Currently, in the \emph{mainnet} IOTA network, nodes use a manual peering process to mutually register as neighbors. 
+%
+However, manual peering might be susceptible to these attacks
+(including social engineering ones)
+and can be also generally inconvenient. 
+%
+To this end, and to simplify the setup process of new nodes, we introduce a mechanism that allows nodes to choose their neighbors \textit{automatically}. 
+%
+The process of nodes choosing their neighbors without manual intervention by the node operator is called \emph{autopeering}.
+
+Specifically, in this section we propose an autopeering mechanism which achieves two important goals: First, it creates an infrastructure where new nodes can easily join the network; second, we make sure that an attacker cannot target specific nodes during the peering process, i.e., we ensure the network to be secure against Eclipse attacks.
+
+For more technical details, we refer the interested reader to the source code of our autopeering simulator\footnote{\url{https://github.com/iotaledger/autopeering-sim}} as well as its integration on \emph{GoShimmer}\footnote{\url{https://github.com/iotaledger/goshimmer}}.
 
 \subsection{Peer discovery}
 
-Every node chooses its neighbors from a list of potential peering partners. In a permissionless environment, this list changes over time since nodes can continuously join or leave the network. To keep this list up-to-date, we assume that nodes periodically communicate a subset of their known peers with others. This mechanism is simple and effective as it allows every node to learn about other network participants. It is important to note that this mechanism only requires to have access to a large enough fraction of the network such that the list of potential peering partners contains \enquote{enough} nodes\footnote{The required number of potential peers needed in the list depends on the gossip protocol as well as global system parameters such as the number of neighbors.}.
+In order to establish connections, a node needs to discover and maintain a list of the reachable IP addresses of other peers (\emph{peer discovery}).
+%
+Then, the node has to select to which peers it establishes connections as well as how to handle incoming connections (\emph{neighbor selection}). 
+%
 
-\subsection{Choosing neighbors}
+To bootstrap the \emph{peer discovery}, a node must be able to reach one or more \emph{entry nodes}. 
+%
+Thus, the protocol provides a hard coded list of trusted \enquote{entry nodes} run by the IF or by trusted community members that answer to peer-discovery requests from new nodes. 
+%
+This approach is a common practice of many distributed networks~\cite{neudecker2018network}. 
+%
+Moreover, Public Key-based Cryptography (PKC) should be used for mutual authentication in order to avoid \enquote{malicious  nodes} from hijacking the bootstrap phase.
+%
+One way to implement such authentication is to use a \emph{ping-pong} protocol: a peer $X$ sends a \emph{ping} message, containing its public key, signed with its private key to a peer $Y$, which in turn, replies with a signed \emph{pong} containing $Y$'s public key. 
+%
+Both peers authenticate to each other by verifying that the respective signatures are valid and add the other peer to the \emph{verified peer-list} (i.e., the list of authenticated peers). 
+%
+In the case of \emph{entry-nodes}, a peer must know in advance their public keys, to verify the signed pong messages.
+%
+
+In a distributed environment, the list of reachable peers changes over time since nodes can continuously join or leave the network. 
+%
+To keep this list up-to-date, we assume that nodes periodically communicate a subset of their known peers to others. 
+%
+Each node, upon reception of a list of known peers from other nodes, adds this information to its \emph{unverified peer-list} (i.e., the list of known peers to be authenticated).
+%
+Once the \emph{unverified peer-list} of a peer is non-empty, a peer $X$ sends a signed \emph{discovery-request} message to some peer $Y$, which belongs to its \emph{unverified peer-list}.
+%
+Peer $Y$ replies with a signed \emph{discovery-response} message containing a subset of its known peers.
+%
+Upon reception and verification of the \emph{discovery-response} message, peer $X$ adds the received peers to its \emph{unverified peer-list} and starts the authentication \emph{ping-pong} protocol with them.
+%
+This mechanism is simple and effective as it allows every node to learn about other network participants. 
+%
+
+It is important to note that this mechanism only requires to have access to a large enough fraction of the network such that the \emph{verified peer-list} (i.e., potential neighbors) contains \enquote{enough} nodes\footnote{The required number of potential peers needed in the list depends on the gossip protocol as well as global system parameters such as the number of neighbors.}.
+
+\subsection{Neighbor selection}
+
+The goal of the \emph{neighbor selection} is to prevent attackers from \enquote{tricking} other nodes into becoming neighbors.  Neighbors are established when one node sends a \emph{peering-request} message to another node, which in turn accepts or rejects the request with a \emph{peering-response} message. 
+%
+To prevent attacks, we attempt to make the \emph{peering-request} {\textit verifiably random}.  If the requests are random, attackers cannot create nodes to which the target node will send requests.  Furthermore, a node must check that the incoming requests are indeed random, in order for it to screen out attacking requests.  
 
 Nodes choose half of their neighbors themselves and let the other half be comprised of neighbors that choose them. The two distinct groups of neighbors are consequently called:
 
 \begin{itemize}
-    \item \textit{Chosen neighbors.} The neighbors that the node proactively choose from his list.
-    \item \textit{Accepted Neighbors.} The neighbors that choose the node as their peer.
+    \item \textit{Chosen neighbors.} The peers that the node proactively chooses from its list of neighbors.
+    \item \textit{Accepted neighbors.} The peers that choose the node as their neighbor.
 \end{itemize}
 
-In order to select \emph{chosen neighbors} from the list of potential peering partners, we measure the distance between two nodes through the distance function~$d$ defined as
+In order to select \emph{chosen neighbors} from the list of potential peering partners, we measure the distance between two nodes through the distance function $d$, defined by 
 \begin{equation*}\label{eq:salted_distance}
-    d(nodeId_1, nodeId_2, \zeta) = hash(nodeId_1 + \zeta) \oplus hash(nodeId_2),
+    d(nodeId_1, nodeId_2, \zeta) = hash(nodeId_1 ) \oplus hash(nodeId_2+ \zeta),
 \end{equation*}
-where $\zeta$ is a public \textit{salt}\footnote{Salts defend against dictionary attacks or against their hashed equivalent, the pre-computed rainbow table attack.}.
+where $\zeta$ is a public \textit{salt}\footnote{Salts defend against dictionary attacks or against their hashed equivalent, the pre-computed rainbow table attack.} (we discuss how salts are chosen in Subsection~\ref{sec:salt}).
 
-In order to connect to new neighbors, each node with ID~$ownId$ and public salt~$\zeta$ keeps a list of potential peers sorted by their distance $d(ownId, \cdot, \zeta)$.
-Then, the node sends them peering requests in ascending order containing its own node ID, its current public salt and its address (i.e., IP + port).
+In order to connect to new neighbors, each node with ID~$ownId$ and public salt~$\zeta$ keeps a list of potential peers that is sorted by their distance $d(ownId, \cdot, \zeta)$.
+Then, the node sends them peering requests in ascending order, containing its own node ID, its current public salt and its address (i.e., IP + port).
 After that, the requested node can decide to either accept or reject the connection as explained below.
-The connecting node repeats this process until it has established connections to enough neighbors.
+The connecting node repeats this process until it has established connections to enough neighbors or it finds closer peers.
 Those neighbors make up its list of \emph{chosen neighbors}.
 This entire process is also illustrated in Algorithm~\ref{alg:choose_neighbors}.
 
@@ -49,13 +111,9 @@ $\mathcal{P}_{sorted}$ $\gets$ \sortByDistanceAsc{$\mathcal{P}$, $ownId$, $\zeta
     \If{$peerRequest.accepted$}{
         \append{$\mathcal{C}$, $p$}\;
         \BlankLine
-        \If{$|\mathcal{C}| > k / 2$}{
+        \If{$|\mathcal{C}| \geq k / 2$}{
             \Return\;
         }
-    }\Else{
-        \append{$\mathcal{P}$, $peerRequest.proposedCandidates$}\;
-        \BlankLine
-        $\mathcal{P}_{sorted}$ $\gets$ \sortByDistanceAsc{$\mathcal{P}$, $ownId$, $\zeta$}\;
     }
 }
 \caption{Select \emph{chosen neighbors}}
@@ -68,49 +126,59 @@ Similarly to the previous case, in order to accept neighbors, every node with ID
     \item The node receiving the peer request does not have enough neighbors.
 \end{itemize}
 
-When a node rejects the peering request because it does not match the above requirements, it can use the public salt to propose new potential peers among its list. This is more formally explained in Algorithm~\ref{alg:filter_accepted_neighbors}.
+In addition, the receiving node can (and should) apply a statistical test to the request, and only accept the request if
+\[d({remoteID}, ownId, \zeta_{remote})<\theta\]
+for a fixed threshold $\theta$.  This test determines if the request was indeed random. 
 
-\begin{algorithm}[htb]
-\DontPrintSemicolon
-\SetKwFunction{len}{len}
-\SetKwFunction{distance}{distance}
-\SetKwFunction{accept}{accept}
-\SetKwFunction{drop}{drop}
-\SetKwFunction{reject}{reject}
-\KwIn{incoming peering request~$r$, desired amount of neighbors~$k$, current list of accepted neighbors~$\mathcal{A}$}
-\BlankLine
-\If{$|\mathcal{A}| < k / 2$}{
-    \accept{r}\;
-}\Else{
-    $distance_r$ $\gets$ $\distance{$ownId$, r.nodeId, $\zeta^*$}$\;
-    \BlankLine
-    \ForEach{a $\in \mathcal{A}$}{
-        $distance_a$ $\gets$ $\distance{$ownId$, a.nodeId, $\zeta^*$}$\;
-        \BlankLine
-        \If{$distance_r < distance_a$}{
-            \accept{r}\;
-            \drop{a}\;
-            \Return\;
-        }
-    }
-    \reject{r}\;
-}
 
-\caption{Filter \emph{accepted neighbors}}
-\label{alg:filter_accepted_neighbors}
-\end{algorithm}
 
-\subsection{Network reorganization}
+\subsection{Network reorganization and eclipse protection}
 
-The public and the private salts help to create an asymmetric perception of the network, which is supposed to discourage an attacker from harming the system. In fact, the only way to target a node in the auto peering process is by brute forcing different node identities and hoping to get closer (in terms of distance~$d$) than an existing neighbor. To prevent brute force attacks from being successful, we let the salts be valid only for a certain amount of time, after which the node updates both its \emph{chosen neighbors} and its \emph{accepted neighbors}\footnote{Another approach of reducing an attackers ability to control the network topology is by including a \enquote{global source of randomness} when generating the salts.}.
+Although we have not yet discussed how salts are selected, we assume in this section that public salts are unpredictable and verifiably random - that is, everyone can check that they are random.  
 
-This frequent reorganization brings a twofold benefit: First, it prevents attackers from affecting the network topology; second, it favors new nodes that want to join the network as their peering requests will be accepted with larger probability.
+The public and the private salts help to create an asymmetric perception of the network, which is supposed to discourage an attacker from harming the system. Through this, the only way to target a node in the autopeering process is by brute forcing different node identities and hoping to get closer (in terms of distance~$d$) than an existing neighbor. 
 
-\subsection{Bootstrapping}
+The effectiveness of this brute force method is determined by a statistical test and a threshold $\theta$.  The smaller the value of $\theta$, the more nodes an attacker requires to have a reasonable chance of being successful. For example if we set $\theta=.01$, an attacker only has $1\%$ of creating a connection with a desired peer. In a similar way, the statistical test allows other nodes to judge the quality of a connection. More specifically, if the distance is small enough, the connection is assumed to be good.
 
-A new node who wants to join the network initially knows nothing about the network.
-It neither knows the state of the ledger nor who is currently part of the network. To allow new nodes to get a first list of \enquote{other peers}, we implement a hard coded list of trusted \enquote{entry nodes} that will be run by the IF or trusted community members and that answer to peering requests from new nodes.
 
-This is common practice and is handled this way in virtually all distributed networks.
+Furthermore, to prevent attacks nodes will change their salts periodically.  This frequent reorganization brings a twofold benefit: First, it prevents attackers from affecting the network topology; second, it supports new nodes that want to join the network as their peering requests will be accepted with larger probability.
+
+
+\subsection{Choosing salts}
+\label{sec:salt}
+
+In this subsection we discuss how to choose salts.  Contrary to private salts, which can be any randomly generated number, the public salts have to be verifiably random. That is, nodes must be able to verify the public salts used in requests.  If an adversary could choose them completely at will, then salts would be mineable, in a manner where the adversary can achieve a minimum distance for any given distance function.  
+
+The simplest way to set public salts would be to use a centralized random number beacon (such as the beacon operated by NIST~\cite{nist:2019}). Indeed, a node could set its public salt to be its ID hashed with every 1000th random number issued by the beacon. However, such a centralized option is unpalatable in a DLT space.
+
+Another similar option is using the same distributed random generator used in the Fast Probabilistic Consensus (FPC) protocol (see Section~\ref{sec:fpc}).  However, there are some issues that would need to be resolved: nodes would receive the random number through gossip, but new nodes would not be able to participate in the gossip without any neighbors.  
+
+Another option is to use hash chains~\cite{lamport1981password}.  When a new node joins the network, it creates a hash chain, $\zeta=\{\zeta_0,\zeta_1,\zeta_2,\dots,\zeta_m\}$, where $\zeta_{i+1}=hash(\zeta_i)$ . Then, when nodes share their ID in the peer discovery, they also reveal the number $\zeta_m$. The salt would then be some value element of the hash chain $\zeta_i$ with $i$ decreasing on the time. Thus, accepting nodes can verify that the salt is correct, without compromising the  unpredictability of the salts.  These hash chains do leave the attacker some amount of freedom, since a desirable hash chain can be mined.  However, since this would require advanced planning, and at most one $\zeta_i$ could be mined in the chain, a desired distance to a certain node can only be created for a short period of time.   
+
+\subsection{Sybil protection}
+
+By creating large amounts of nodes for free, an attacker may gain influence on the network topology and might be able to perform eclipse attacks.
+In order to effectively prevent this kind of attacks, we introduce a Sybil protection.  
+As discussed in Section~\ref{sec:sybil}, the Sybil protection in the IOTA protocol is given by \emph{mana}. 
+
+We outline the main idea how \emph{mana} can be implemented into our autopeering mechanism. 
+%
+The simplest way is to require nodes to have a minimal amount of \emph{mana} to participate in the autopeering. 
+%
+This is problematic for two reasons. 
+%
+First, we want as many nodes to participate as possible, and setting a \emph{mana} requirement could hurt participation. 
+%
+Second, attacking nodes will be encouraged to split up their nodes into several smaller attacking identities. 
+%
+Moreover, any hard threshold criterion\footnote{For instance, we could pick a parameter $a>1$, and a node with $M$ \emph{mana} would only peer with nodes whose \emph{mana} is in the interval $[M/a,Ma]$.} may lead to poor connectivity properties of the autopeering network. 
+%
+For these reasons, our preferred option is to weight the distance function by \emph{mana}.\footnote{For example, we can modify the distance between nodes $X$ and $Y$ defined at the beginning of this section to $$    d(X, Y, \zeta) = f(|k_X-k_Y|)\left[hash(nodeId_X ) \oplus hash(nodeId_Y+ \zeta)\right],
+$$ where $k_i$ is the rank (i.e. the position in the ordered list of nodes) of the node $i$ according to mana, and $f(s)$ is some increasing function, such as $e^{\alpha s}$ or $s^3$.}
+%
+This would make low \emph{mana} nodes less favorable but still allow them to participate. 
+%
+Moreover, nodes with similar \emph{mana} are likely to be paired with each other.  Thus, to eclipse a high \emph{mana}  node, an attacker would also need many high \emph{mana}  nodes.  
+
 
 \end{document}
